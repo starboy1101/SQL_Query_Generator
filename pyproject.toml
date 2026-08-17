@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "llm-sql-query-generator"
+version = "1.0.0"
+description = "Production-grade schema-aware natural-language-to-SQL API"
+readme = "README.md"
+requires-python = ">=3.10,<3.14"
+license = {text = "MIT"}
+authors = [{name = "SQL Query Generator Contributors"}]
+dependencies = [
+  "fastapi>=0.115,<1",
+  "httpx2>=2.9,<3",
+  "prometheus-client>=0.21,<1",
+  "pydantic-settings>=2.6,<3",
+  "sqlalchemy>=2.0.36,<3",
+  "sqlglot>=26,<29",
+  "uvicorn[standard]>=0.32,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "mypy>=1.13,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.8,<1",
+]
+ml = [
+  "accelerate>=1.1,<2",
+  "bitsandbytes>=0.44,<1; platform_system != 'Windows'",
+  "datasets>=3.1,<4",
+  "peft>=0.13,<1",
+  "torch>=2.4,<3",
+  "transformers>=4.46,<5",
+]
+postgres = ["psycopg[binary]>=3.2,<4"]
+mysql = ["pymysql>=1.1,<2"]
+
+[project.scripts]
+text-to-sql-api = "app.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+addopts = "-q --strict-markers --disable-warnings"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[tool.ruff]
+target-version = "py310"
+line-length = 110
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["B008"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+exclude = ["scripts/"]
+
+[[tool.mypy.overrides]]
+module = ["sqlglot.*", "prometheus_client.*", "peft.*", "torch.*", "transformers.*", "httpx2.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["app.llm.huggingface"]
+disallow_untyped_calls = false
