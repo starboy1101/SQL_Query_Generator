@@ -24,7 +24,10 @@ export function AppHeader({ capabilities, serviceState }: AppHeaderProps) {
             <path d="M7 8v8c0 2.2 4 4 9 4s9-1.8 9-4V8M7 16v8c0 2.2 4 4 9 4s9-1.8 9-4v-8" />
           </svg>
         </span>
-        <span>SQL Pilot</span>
+        <span className="brand-copy">
+          <span className="brand-title">SQL Pilot</span>
+          <span className="brand-subtitle">AI query workspace</span>
+        </span>
       </a>
 
       <div className="header-context" aria-label="Service information">
@@ -34,7 +37,11 @@ export function AppHeader({ capabilities, serviceState }: AppHeaderProps) {
             {capabilities.dialect}
           </span>
         )}
-        <span className={`status-pill status-${serviceState}`}>
+        <span
+          className={`status-pill status-${serviceState}`}
+          role="status"
+          aria-live="polite"
+        >
           <span className="status-dot" aria-hidden="true" />
           {statusText[serviceState]}
         </span>

@@ -71,6 +71,16 @@ describe('SQL Pilot application', () => {
     render(<App />);
     expect(await screen.findByText('customers')).toBeInTheDocument();
     expect(screen.getByText('API ready')).toBeInTheDocument();
+    expect(
+      screen.getByText(`© ${new Date().getFullYear()} Omkar Mahabdi. All rights reserved.`),
+    ).toBeInTheDocument();
+
+    const githubLink = screen.getByRole('link', { name: /Omkar Mahabdi on GitHub/i });
+    const linkedinLink = screen.getByRole('link', { name: /Omkar Mahabdi on LinkedIn/i });
+    expect(githubLink).toHaveAttribute('href', 'https://github.com/starboy1101');
+    expect(githubLink).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(linkedinLink).toHaveAttribute('href', 'https://www.linkedin.com/in/omkar-mahabdi');
+    expect(linkedinLink).toHaveAttribute('rel', 'noopener noreferrer');
 
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'How many customers are there?' }));

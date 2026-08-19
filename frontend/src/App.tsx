@@ -8,6 +8,7 @@ import type {
   QueryResponse,
 } from './api/types';
 import { AppHeader, type ServiceState } from './components/AppHeader';
+import { PortfolioFooter } from './components/PortfolioFooter';
 import { QueryComposer } from './components/QueryComposer';
 import { QueryResult } from './components/QueryResult';
 import { SchemaExplorer } from './components/SchemaExplorer';
@@ -70,9 +71,12 @@ export default function App() {
 
   return (
     <div id="top" className="app-shell">
+      <a className="skip-link" href="#main-content">
+        Skip to query workspace
+      </a>
       <AppHeader capabilities={capabilities} serviceState={serviceState} />
 
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <section className="hero" aria-labelledby="page-title">
           <div className="hero-copy">
             <span className="eyebrow"><span /> Schema-aware AI workspace</span>
@@ -81,10 +85,16 @@ export default function App() {
               Turn plain English into validated, read-only queries—grounded in the schema that is actually available.
             </p>
           </div>
-          <div className="safety-summary" aria-label="Safety controls">
-            <span><strong>01</strong> Schema grounded</span>
-            <span><strong>02</strong> AST validated</span>
-            <span><strong>03</strong> Read only</span>
+          <div className="safety-panel" aria-label="Safety controls">
+            <div className="safety-panel-heading">
+              <span>Safety boundary</span>
+              <span className="always-on"><span aria-hidden="true" /> Always on</span>
+            </div>
+            <div className="safety-summary">
+              <span><strong>01</strong> Schema grounded</span>
+              <span><strong>02</strong> AST validated</span>
+              <span><strong>03</strong> Read only</span>
+            </div>
           </div>
         </section>
 
@@ -105,11 +115,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer>
-        <span>SQL Pilot</span>
-        <p>Model output is untrusted until it passes the SQL safety boundary.</p>
-        <a href="/openapi.json">OpenAPI</a>
-      </footer>
+      <PortfolioFooter />
     </div>
   );
 }
