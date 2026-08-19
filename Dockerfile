@@ -1,4 +1,12 @@
 # syntax=docker/dockerfile:1
+FROM node:24-alpine AS frontend-builder
+
+WORKDIR /web
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend ./
+RUN npm run build
+
 FROM python:3.12-slim AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -14,11 +22,14 @@ COPY app ./app
 COPY scripts/seed_demo_db.py ./scripts/seed_demo_db.py
 RUN pip install --upgrade pip && pip install .
 
-RUN mkdir -p /app/data && chown -R app:app /app
+COPY --from=frontend-builder /web/dist ./frontend/dist
+RUN mkdir -p /app/data \
+    && python scripts/seed_demo_db.py --path /app/data/demo.db \
+    && chown -R app:app /app
 USER app
 
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"
+  CMD python -c "import os, urllib.request; port=os.getenv('PORT', '8000'); urllib.request.urlopen(f'http://127.0.0.1:{port}/health/ready', timeout=3)"
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--proxy-headers"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --proxy-headers"]

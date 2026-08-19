@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Request, status
 
 from app.api.dependencies import QueryServiceDependency, SchemaDependency, verify_api_key
 from app.api.schemas import (
+    CapabilitiesResponse,
     DatabaseSchemaResponse,
     ExecuteQueryRequest,
     GenerateQueryRequest,
@@ -11,6 +12,23 @@ from app.api.schemas import (
 )
 
 router = APIRouter(dependencies=[Depends(verify_api_key)])
+
+
+@router.get(
+    "/capabilities",
+    response_model=CapabilitiesResponse,
+    summary="Return public API limits and feature availability",
+)
+def get_capabilities(request: Request, service: QueryServiceDependency) -> CapabilitiesResponse:
+    settings = request.app.state.settings
+    return CapabilitiesResponse(
+        dialect=settings.database_dialect,
+        model=service.model_id,
+        execution_enabled=settings.allow_query_execution,
+        default_max_rows=settings.default_max_rows,
+        max_rows_cap=settings.max_rows_cap,
+        max_question_length=settings.max_question_length,
+    )
 
 
 @router.post(
@@ -46,6 +64,6 @@ def execute_query(
     response_model=DatabaseSchemaResponse,
     summary="Return the schema visible to the language model",
 )
-def get_database_schema(introspector: SchemaDependency, refresh: bool = False) -> DatabaseSchemaResponse:
-    schema = introspector.get_schema(force_refresh=refresh)
+def get_database_schema(introspector: SchemaDependency) -> DatabaseSchemaResponse:
+    schema = introspector.get_schema()
     return DatabaseSchemaResponse.model_validate(schema.to_dict())

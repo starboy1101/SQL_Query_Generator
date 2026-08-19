@@ -12,3 +12,6 @@ outputs
 tests
 data/*.db
 *.log
+frontend/node_modules
+frontend/dist
+frontend/coverage

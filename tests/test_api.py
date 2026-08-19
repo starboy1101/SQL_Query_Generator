@@ -13,6 +13,18 @@ def test_health_and_schema(client: TestClient) -> None:
     schema = client.get("/api/v1/schema")
     assert schema.status_code == 200
     assert {table["name"] for table in schema.json()["tables"]} == {"customers", "orders"}
+    capabilities = client.get("/api/v1/capabilities")
+    assert capabilities.status_code == 200
+    assert capabilities.json()["execution_enabled"] is True
+    assert capabilities.json()["max_rows_cap"] == 50
+
+
+def test_readiness_fails_when_an_allowlisted_table_is_missing(settings: Settings) -> None:
+    invalid = settings.model_copy(update={"allowed_tables": ("customers", "missing_table")})
+    with TestClient(create_app(invalid)) as client:
+        response = client.get("/health/ready")
+    assert response.status_code == 503
+    assert response.json()["checks"]["schema"] is False
 
 
 def test_generate_and_execute_count(client: TestClient) -> None:
@@ -55,6 +67,39 @@ def test_execution_policy_is_enforced(settings: Settings) -> None:
         )
     assert response.status_code == 403
     assert response.json()["error"]["code"] == "query_execution_disabled"
+
+
+def test_direct_execution_has_an_independent_policy(settings: Settings) -> None:
+    protected = settings.model_copy(update={"allow_direct_sql_execution": False})
+    with TestClient(create_app(protected)) as client:
+        response = client.post("/api/v1/queries/execute", json={"sql": "SELECT * FROM customers"})
+    assert response.status_code == 403
+    assert response.json()["error"]["code"] == "direct_query_execution_disabled"
+
+
+def test_generation_rate_limit(settings: Settings) -> None:
+    limited = settings.model_copy(update={"rate_limit_requests_per_minute": 1})
+    with TestClient(create_app(limited)) as client:
+        first = client.post("/api/v1/queries/generate", json={"question": "List customers"})
+        second = client.post("/api/v1/queries/generate", json={"question": "Count customers"})
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert second.headers["Retry-After"]
+    assert second.json()["error"]["code"] == "rate_limit_exceeded"
+
+
+def test_authenticated_cors_preflight_allows_api_key(settings: Settings) -> None:
+    with TestClient(create_app(settings)) as client:
+        response = client.options(
+            "/api/v1/schema",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "X-API-Key",
+            },
+        )
+    assert response.status_code == 200
+    assert "x-api-key" in response.headers["access-control-allow-headers"].lower()
 
 
 def test_request_validation_uses_stable_error_shape(client: TestClient) -> None:

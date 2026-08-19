@@ -12,6 +12,7 @@ license = {text = "MIT"}
 authors = [{name = "SQL Query Generator Contributors"}]
 dependencies = [
   "fastapi>=0.115,<1",
+  "gradio-client>=2.5,<3",
   "httpx2>=2.9,<3",
   "prometheus-client>=0.21,<1",
   "pydantic-settings>=2.6,<3",
@@ -71,7 +72,15 @@ strict = true
 exclude = ["scripts/"]
 
 [[tool.mypy.overrides]]
-module = ["sqlglot.*", "prometheus_client.*", "peft.*", "torch.*", "transformers.*", "httpx2.*"]
+module = [
+  "gradio_client.*",
+  "sqlglot.*",
+  "prometheus_client.*",
+  "peft.*",
+  "torch.*",
+  "transformers.*",
+  "httpx2.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

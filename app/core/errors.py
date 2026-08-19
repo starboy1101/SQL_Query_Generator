@@ -46,3 +46,13 @@ class DatabaseUnavailableError(AppError):
 class AuthenticationError(AppError):
     status_code = 401
     code = "authentication_required"
+
+
+class RateLimitError(AppError):
+    status_code = 429
+    code = "rate_limit_exceeded"
+
+
+class DirectQueryExecutionDisabledError(AppError):
+    status_code = 403
+    code = "direct_query_execution_disabled"

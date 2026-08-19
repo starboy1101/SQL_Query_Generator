@@ -11,7 +11,12 @@ from app.api.schemas import (
     ValidationInfo,
 )
 from app.core.config import Settings
-from app.core.errors import InvalidQueryError, QueryExecutionDisabledError, UnsafeQueryError
+from app.core.errors import (
+    DirectQueryExecutionDisabledError,
+    InvalidQueryError,
+    QueryExecutionDisabledError,
+    UnsafeQueryError,
+)
 from app.db.gateway import DatabaseGateway
 from app.db.schema import DatabaseSchema, SchemaIntrospector
 from app.db.validator import SQLValidator, ValidatedQuery
@@ -107,6 +112,8 @@ class QueryService:
     def execute(self, request: ExecuteQueryRequest, *, request_id: str) -> QueryResponse:
         started_at = time.perf_counter()
         dialect = self._settings.database_dialect
+        if not self._settings.allow_direct_sql_execution:
+            raise DirectQueryExecutionDisabledError("Direct SQL execution is disabled by server policy")
         self._ensure_execution_allowed(dialect)
         schema = self._introspector.get_schema()
         max_rows = self._resolve_max_rows(request.max_rows)

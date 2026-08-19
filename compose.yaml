@@ -9,13 +9,16 @@ services:
       DATABASE_DIALECT: sqlite
       ALLOWED_TABLES: customers,orders,order_items,products
       ALLOW_QUERY_EXECUTION: "true"
+      ALLOW_DIRECT_SQL_EXECUTION: "false"
       LLM_BACKEND: heuristic
+      METRICS_ENABLED: "true"
+      RATE_LIMIT_REQUESTS_PER_MINUTE: "30"
     volumes:
       - demo-data:/app/data
     command:
       - /bin/sh
       - -c
-      - python scripts/seed_demo_db.py --path /app/data/demo.db && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+      - python scripts/seed_demo_db.py --path /app/data/demo.db && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
 
 volumes:
   demo-data:

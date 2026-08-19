@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: sql-pilot
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/ready
+    autoDeployTrigger: commit
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:////app/data/demo.db
+      - key: DATABASE_DIALECT
+        value: sqlite
+      - key: ALLOWED_TABLES
+        value: customers,orders,order_items,products
+      - key: INCLUDE_VIEWS
+        value: "false"
+      - key: ALLOW_QUERY_EXECUTION
+        value: "true"
+      - key: ALLOW_DIRECT_SQL_EXECUTION
+        value: "false"
+      - key: DEFAULT_MAX_ROWS
+        value: "50"
+      - key: MAX_ROWS_CAP
+        value: "100"
+      - key: QUERY_TIMEOUT_SECONDS
+        value: "5"
+      - key: LLM_BACKEND
+        value: huggingface_space
+      - key: HF_SPACE_ID
+        value: omkar1804/sql-pilot-model
+      - key: HF_SPACE_API_NAME
+        value: /generate
+      - key: MODEL_NAME_OR_PATH
+        value: prem-research/prem-1B-SQL
+      - key: MODEL_REQUEST_TIMEOUT_SECONDS
+        value: "180"
+      - key: MODEL_MAX_INPUT_TOKENS
+        value: "3072"
+      - key: MODEL_MAX_NEW_TOKENS
+        value: "128"
+      - key: MODEL_WARMUP_ON_START
+        value: "false"
+      - key: SERVE_FRONTEND
+        value: "true"
+      - key: METRICS_ENABLED
+        value: "false"
+      - key: RATE_LIMIT_REQUESTS_PER_MINUTE
+        value: "10"

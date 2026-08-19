@@ -24,7 +24,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
         started_at = time.perf_counter()
         response = await call_next(request)
         route_object = request.scope.get("route")
-        route = getattr(route_object, "path", request.url.path)
+        route = getattr(route_object, "path", "unmatched")
         HTTP_REQUESTS.labels(request.method, route, str(response.status_code)).inc()
         HTTP_LATENCY.labels(request.method, route).observe(time.perf_counter() - started_at)
         return response

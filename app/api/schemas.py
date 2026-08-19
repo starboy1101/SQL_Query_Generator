@@ -85,6 +85,15 @@ class HealthResponse(BaseModel):
     checks: dict[str, bool] = Field(default_factory=dict)
 
 
+class CapabilitiesResponse(BaseModel):
+    dialect: Dialect
+    model: str
+    execution_enabled: bool
+    default_max_rows: int
+    max_rows_cap: int
+    max_question_length: int
+
+
 class ErrorBody(BaseModel):
     code: str
     message: str

@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cors_origins: Annotated[tuple[str, ...], NoDecode] = ("http://localhost:3000",)
     api_key: str | None = None
+    serve_frontend: bool = True
+    frontend_dist_dir: str = "frontend/dist"
+    metrics_enabled: bool = True
+    rate_limit_requests_per_minute: int = Field(default=30, ge=0, le=10_000)
 
     database_url: str = "sqlite:///./data/demo.db"
     database_dialect: Literal["sqlite", "postgres", "mysql", "tsql", "oracle"] = "sqlite"
@@ -32,9 +36,14 @@ class Settings(BaseSettings):
     include_views: bool = True
     schema_cache_ttl_seconds: int = Field(default=300, ge=0, le=86_400)
 
-    llm_backend: Literal["heuristic", "huggingface", "openai_compatible"] = "heuristic"
+    llm_backend: Literal[
+        "heuristic", "huggingface", "huggingface_space", "openai_compatible"
+    ] = "heuristic"
     model_name_or_path: str = "codellama/CodeLlama-7b-Instruct-hf"
     adapter_path: str | None = None
+    hf_space_id: str = ""
+    hf_space_api_name: str = "/generate"
+    hf_space_token: str | None = None
     model_api_base_url: str = "http://localhost:8001"
     model_api_key: str | None = None
     model_request_timeout_seconds: float = Field(default=45.0, gt=0, le=300)
@@ -48,6 +57,7 @@ class Settings(BaseSettings):
     max_repair_attempts: int = Field(default=1, ge=0, le=2)
 
     allow_query_execution: bool = False
+    allow_direct_sql_execution: bool = False
     default_max_rows: int = Field(default=100, ge=1, le=10_000)
     max_rows_cap: int = Field(default=1000, ge=1, le=100_000)
     query_timeout_seconds: int = Field(default=10, ge=1, le=300)
@@ -58,6 +68,21 @@ class Settings(BaseSettings):
     def parse_csv_tuple(cls, value: object) -> object:
         if isinstance(value, str):
             return tuple(item.strip() for item in value.split(",") if item.strip())
+        return value
+
+    @field_validator(
+        "api_key",
+        "database_schema",
+        "adapter_path",
+        "hf_space_token",
+        "model_api_key",
+        mode="before",
+    )
+    @classmethod
+    def blank_optional_string_is_none(cls, value: object) -> object:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
         return value
 
     @field_validator("max_rows_cap")

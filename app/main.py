@@ -4,12 +4,14 @@ import logging
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import make_asgi_app
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.responses import Response
@@ -20,6 +22,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 from app.core.logging import configure_logging, request_id_context
 from app.core.metrics import MetricsMiddleware
+from app.core.rate_limit import RateLimitMiddleware
 from app.db.gateway import DatabaseGateway, create_database_engine
 from app.db.schema import SchemaIntrospector
 from app.db.validator import SQLValidator
@@ -82,8 +85,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_origins=list(settings.cors_origins),
         allow_credentials=False,
         allow_methods=["GET", "POST"],
-        allow_headers=["Content-Type", "Authorization", "X-Request-ID"],
+        allow_headers=["Content-Type", "Authorization", "X-API-Key", "X-Request-ID"],
         expose_headers=["X-Request-ID"],
+    )
+    app.add_middleware(
+        RateLimitMiddleware,
+        requests_per_minute=settings.rate_limit_requests_per_minute,
+        protected_paths=(
+            f"{settings.api_prefix}/queries/generate",
+            f"{settings.api_prefix}/queries/execute",
+        ),
     )
 
     @app.middleware("http")
@@ -97,6 +108,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             response.headers["X-Request-ID"] = request_id
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+            response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; script-src 'self'; style-src 'self'; "
+                "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+            )
             return response
         finally:
             request_id_context.reset(token)
@@ -146,7 +163,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(api_router, prefix=settings.api_prefix, tags=["text-to-sql"])
-    app.mount("/metrics", make_asgi_app())
+    if settings.metrics_enabled:
+        app.mount("/metrics", make_asgi_app())
+    frontend_directory = Path(settings.frontend_dist_dir)
+    if settings.serve_frontend and frontend_directory.is_dir():
+        app.mount("/", StaticFiles(directory=frontend_directory, html=True), name="frontend")
     return app
 
 

@@ -42,6 +42,7 @@ def settings(database_path: Path) -> Settings:
         database_dialect="sqlite",
         allowed_tables=("customers", "orders"),
         allow_query_execution=True,
+        allow_direct_sql_execution=True,
         llm_backend="heuristic",
         max_repair_attempts=0,
         default_max_rows=25,
