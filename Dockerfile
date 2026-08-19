@@ -20,7 +20,11 @@ RUN groupadd --system app && useradd --system --gid app --home-dir /app app
 COPY pyproject.toml README.md ./
 COPY app ./app
 COPY scripts/seed_demo_db.py ./scripts/seed_demo_db.py
-RUN pip install --upgrade pip && pip install .
+RUN python -m pip install \
+    --disable-pip-version-check \
+    --retries 10 \
+    --timeout 60 \
+    .
 
 COPY --from=frontend-builder /web/dist ./frontend/dist
 RUN mkdir -p /app/data \
