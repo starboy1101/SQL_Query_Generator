@@ -33,6 +33,8 @@ services:
         value: omkar1804/sql-pilot-model
       - key: HF_SPACE_API_NAME
         value: /generate
+      - key: HF_SPACE_TOKEN
+        sync: false
       - key: MODEL_NAME_OR_PATH
         value: prem-research/prem-1B-SQL
       - key: MODEL_REQUEST_TIMEOUT_SECONDS

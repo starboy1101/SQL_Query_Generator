@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import os
 from concurrent.futures import TimeoutError as FutureTimeoutError
 
 from gradio_client import Client
+from gradio_client.exceptions import AppError
 from sqlglot import exp, parse
 
-SPACE_ID = os.getenv("HF_SPACE_ID", "omkar1804/sql-pilot-model")
+from app.core.config import Settings
+
+DEFAULT_SPACE_ID = "omkar1804/sql-pilot-model"
 REQUEST_TIMEOUT_SECONDS = 180
+INVALID_DECODE_MARKERS = ("\u010a", "\u0120")
 
 PROMPT = """# Follow these instructions:
 You will be given table schemas for a database. Write one correct, read-only SQL query
@@ -31,8 +34,11 @@ TABLE customers (id INTEGER PK NOT NULL, name TEXT NOT NULL)
 
 
 def main() -> None:
+    settings = Settings()
+    space_id = settings.hf_space_id.strip() or DEFAULT_SPACE_ID
     client = Client(
-        SPACE_ID,
+        space_id,
+        token=settings.hf_space_token,
         verbose=False,
         analytics_enabled=False,
         download_files=False,
@@ -48,12 +54,27 @@ def main() -> None:
     except FutureTimeoutError as exc:
         job.cancel()
         raise SystemExit(f"Space request timed out after {REQUEST_TIMEOUT_SECONDS} seconds") from exc
+    except AppError as exc:
+        message = str(exc)
+        if "ZeroGPU runs limit" in message:
+            if settings.hf_space_token:
+                hint = (
+                    "The authenticated Hugging Face account has exhausted its daily ZeroGPU quota. "
+                    "Wait for the quota reset or use an account with additional quota."
+                )
+            else:
+                hint = (
+                    "The unauthenticated ZeroGPU quota is exhausted. Add a Hugging Face read token "
+                    "to .env as HF_SPACE_TOKEN, then run this test again."
+                )
+            raise SystemExit(hint) from exc
+        raise SystemExit(f"Space request failed: {message}") from exc
 
     if not isinstance(result, str) or not result.strip():
         raise SystemExit("Space returned an empty or non-text response")
 
     sql = result.strip()
-    if "\x00" in sql or "Ċ" in sql or "Ġ" in sql:
+    if "\x00" in sql or any(marker in sql for marker in INVALID_DECODE_MARKERS):
         raise SystemExit(f"Space returned malformed tokenizer text: {sql!r}")
 
     statements = parse(sql, read="sqlite")
