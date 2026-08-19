@@ -45,6 +45,9 @@ services:
         value: "128"
       - key: MODEL_WARMUP_ON_START
         value: "false"
+      # Avoid spending a second scarce ZeroGPU call on automatic SQL repair.
+      - key: MAX_REPAIR_ATTEMPTS
+        value: "0"
       - key: SERVE_FRONTEND
         value: "true"
       - key: METRICS_ENABLED

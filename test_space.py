@@ -5,6 +5,7 @@ from concurrent.futures import TimeoutError as FutureTimeoutError
 from gradio_client import Client
 from gradio_client.exceptions import AppError
 from sqlglot import exp, parse
+from sqlglot.errors import ParseError
 
 from app.core.config import Settings
 
@@ -77,7 +78,10 @@ def main() -> None:
     if "\x00" in sql or any(marker in sql for marker in INVALID_DECODE_MARKERS):
         raise SystemExit(f"Space returned malformed tokenizer text: {sql!r}")
 
-    statements = parse(sql, read="sqlite")
+    try:
+        statements = parse(sql, read="sqlite")
+    except ParseError as exc:
+        raise SystemExit(f"Space returned invalid SQL: {sql!r}\nParser error: {exc}") from exc
     if len(statements) != 1 or not isinstance(statements[0], exp.Query):
         raise SystemExit(f"Space did not return exactly one read-only query: {sql!r}")
 

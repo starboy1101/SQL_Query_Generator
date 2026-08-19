@@ -91,7 +91,11 @@ def extract_sql(generated: str) -> str:
     if not start:
         raise gr.Error("The model did not return a SQL SELECT statement.")
 
-    sql = text[start.start() :].removesuffix("```").strip()
+    sql_text = text[start.start() :].removesuffix("```").strip()
+
+    # This endpoint's contract is exactly one single-line SQL statement. Keep
+    # the first generated SQL line if the checkpoint starts a second sample.
+    sql = next((line.strip() for line in sql_text.splitlines() if line.strip()), "")
     if not sql:
         raise gr.Error("The model returned an empty response.")
     if len(sql) > MAX_OUTPUT_CHARS:
@@ -132,7 +136,10 @@ def generate_sql(prompt: str, max_new_tokens: int) -> str:
             num_beams=1,
             eos_token_id=tokenizer.eos_token_id,
             pad_token_id=tokenizer.pad_token_id,
-            stop_strings=[";\n", "\n#"],
+            # The model was trained on labelled, newline-delimited examples.
+            # Stop at its first completed response line instead of allowing it
+            # to continue into another sample until max_new_tokens is reached.
+            stop_strings=["\n", "```"],
             tokenizer=tokenizer,
             use_cache=True,
         )
